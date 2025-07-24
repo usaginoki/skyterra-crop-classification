@@ -1,0 +1,5 @@
+# Sahel Region, West Africa
+# Drought and vegetation monitoring
+
+sw 12.0,-5.0
+ne 14.5,-2.0 

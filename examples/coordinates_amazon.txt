@@ -1,0 +1,5 @@
+# Amazon Rainforest, Brazil
+# Deforestation monitoring area
+
+sw -10.5,-65.0
+ne -8.0,-62.5 

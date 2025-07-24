@@ -1,0 +1,5 @@
+# Netherlands Agricultural Region
+# Crop monitoring area near Amsterdam
+
+sw 52.1,4.8
+ne 52.6,5.3 

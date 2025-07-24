@@ -1,0 +1,5 @@
+# California Central Valley, USA
+# Agricultural region coordinates
+
+sw 36.0,-121.0
+ne 37.5,-119.5 

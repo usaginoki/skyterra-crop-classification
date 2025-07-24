@@ -1,0 +1,20 @@
+# COORDINATES FILE FORMAT GUIDE
+# ================================
+#
+# This file defines a rectangular bounding box for downloading HLS data.
+# The format is simple and consists of:
+#
+# 1. Optional comment lines (starting with # or any descriptive text)
+# 2. Southwest corner: sw latitude,longitude  
+# 3. Northeast corner: ne latitude,longitude
+#
+# RULES:
+# - Latitude: -90 to +90 (negative = South, positive = North)
+# - Longitude: -180 to +180 (negative = West, positive = East)
+# - Southwest corner should be SOUTH and WEST of Northeast corner
+# - Use decimal degrees (not degrees/minutes/seconds)
+# - No spaces around the comma in coordinates
+#
+# EXAMPLE - Small region in Wyoming, USA:
+sw 41.0,-108.0
+ne 41.5,-107.0 
