@@ -5,11 +5,15 @@ A Python script for downloading HLS Sentinel-2 Multi-spectral Instrument Surface
 ## Features
 
 - Download HLS Sentinel-2 data (.tif files) from NASA Earthdata
+- **Granule organization**: Each granule downloaded to separate folders
+- **Interactive granule selection**: Choose specific granules or download all
+- **Smart limits**: Automatic abort if more than 3 granules detected
 - Configurable parameters: coordinates, date/date range, and bands
 - Support for coordinates from files or direct input
 - Filter by specific bands (B02, B03, B04, B8A, B11, B12, etc.)
 - Command-line interface and programmatic usage
 - List available data without downloading
+- Auto-download mode for batch processing
 
 ## Prerequisites
 
@@ -32,21 +36,23 @@ A Python script for downloading HLS Sentinel-2 Multi-spectral Instrument Surface
 
 ### Command Line Usage
 
-1. **Download data using coordinates file:**
+1. **Download data using coordinates file (interactive granule selection):**
    ```bash
    python src/download_hls_data.py \
      --coords-file data/sentinel/region-0/coordinates.txt \
      --date 2024-07-15 \
      --bands B02 B03 B04
    ```
+   *The script will show available granules and let you select which ones to download.*
 
-2. **Download data using direct coordinates:**
+2. **Download data using direct coordinates (auto-download all granules):**
    ```bash
    python src/download_hls_data.py \
      --sw-lat 45.24301 --sw-lon 78.44504 \
      --ne-lat 45.2912 --ne-lon 78.49116 \
      --date 2024-07-15 \
-     --bands B8A B11 B12
+     --bands B8A B11 B12 \
+     --auto-download
    ```
 
 3. **Download data for a date range:**
@@ -73,17 +79,30 @@ from src.download_hls_data import HLSDownloader
 # Initialize downloader (handles authentication)
 downloader = HLSDownloader()
 
-# Download data
+# Download data with interactive granule selection (default)
 downloaded_files = downloader.download_hls_data(
     sw_coords=(45.24301, 78.44504),  # Southwest (lat, lon)
     ne_coords=(45.2912, 78.49116),   # Northeast (lat, lon)
     date="2024-07-15",               # Date or "start,end" range
     bands=["B02", "B03", "B04"],     # Bands to download
     output_dir="./data/downloaded",   # Output directory
-    max_results=10                   # Max files to download
+    max_results=10,                  # Max files to download
+    auto_download=False              # Interactive mode (default)
+)
+
+# Or download all granules automatically
+downloaded_files = downloader.download_hls_data(
+    sw_coords=(45.24301, 78.44504),
+    ne_coords=(45.2912, 78.49116),
+    date="2024-07-15",
+    bands=["B02", "B03", "B04"],
+    output_dir="./data/downloaded",
+    max_results=10,
+    auto_download=True               # Auto-download all granules
 )
 
 print(f"Downloaded {len(downloaded_files)} files")
+# Files are organized in granule-specific folders under output_dir
 ```
 
 ## Parameters
@@ -124,9 +143,51 @@ Available HLS Sentinel-2 bands:
 
 **Default bands**: `B02 B03 B04 B8A B11 B12`
 
+## Granule Organization & Selection
+
+### Granule Folders
+Each HLS granule is downloaded to its own folder, organized by granule identifier:
+```
+./data/downloaded/
+├── HLS.S30.T43TGL.2024196T053649.v2.0/
+│   ├── HLS.S30.T43TGL.2024196T053649.v2.0.B02.tif
+│   ├── HLS.S30.T43TGL.2024196T053649.v2.0.B03.tif
+│   └── HLS.S30.T43TGL.2024196T053649.v2.0.B04.tif
+└── HLS.S30.T43TGM.2024196T053649.v2.0/
+    ├── HLS.S30.T43TGM.2024196T053649.v2.0.B02.tif
+    ├── HLS.S30.T43TGM.2024196T053649.v2.0.B03.tif
+    └── HLS.S30.T43TGM.2024196T053649.v2.0.B04.tif
+```
+
+### Interactive Selection
+By default, the script provides an interactive interface to select granules:
+```
+🔍 Found 2 granules:
+   1. HLS.S30.T43TGL.2024196T053649.v2.0 (6 bands)
+   2. HLS.S30.T43TGM.2024196T053649.v2.0 (6 bands)
+
+Options:
+   - Enter granule numbers (1-2) separated by commas to select specific granules
+   - Press Enter to download all granules
+   - Type 'abort' to cancel
+
+Your choice: 1,2
+```
+
+### Selection Options
+- **Select specific granules**: Enter numbers like `1` or `1,3`
+- **Download all**: Press Enter
+- **Cancel**: Type `abort`
+
+### Automatic Download Mode
+Use `--auto-download` to skip interactive selection and download all granules automatically.
+
+### Maximum Limit
+The script automatically aborts if more than **3 granules** are detected to prevent excessive downloads. Narrow your search criteria (smaller area or date range) if this occurs.
+
 ## Examples
 
-### Example 1: Basic RGB Download
+### Example 1: Interactive Granule Selection
 ```bash
 python src/download_hls_data.py \
   --coords-file coordinates.txt \
@@ -134,18 +195,21 @@ python src/download_hls_data.py \
   --bands B02 B03 B04 \
   --output-dir ./rgb_data
 ```
+*Script will display available granules and prompt for selection.*
 
-### Example 2: NIR and SWIR Analysis
+### Example 2: Auto-Download All Granules
 ```bash
 python src/download_hls_data.py \
   --sw-lat 45.24 --sw-lon 78.44 \
   --ne-lat 45.29 --ne-lon 78.49 \
   --date 2024-07-15 \
   --bands B8A B11 B12 \
-  --output-dir ./nir_swir_data
+  --output-dir ./nir_swir_data \
+  --auto-download
 ```
+*Downloads all detected granules automatically without user interaction.*
 
-### Example 3: Time Series Data
+### Example 3: Time Series with Granule Organization
 ```bash
 python src/download_hls_data.py \
   --coords-file coordinates.txt \
@@ -154,6 +218,7 @@ python src/download_hls_data.py \
   --max-results 100 \
   --output-dir ./time_series
 ```
+*Each granule will be saved in separate folders for easy time series analysis.*
 
 ### Example 4: Check Available Data
 ```bash
@@ -163,13 +228,25 @@ python src/download_hls_data.py \
   --list-only
 ```
 
+### Example 5: Selecting Specific Granules
+When prompted with granule selection:
+```
+🔍 Found 3 granules:
+   1. HLS.S30.T43TGL.2024196T053649.v2.0 (6 bands)
+   2. HLS.S30.T43TGM.2024196T053649.v2.0 (6 bands)
+   3. HLS.S30.T43TGN.2024196T053649.v2.0 (6 bands)
+
+Your choice: 1,3
+```
+*This would download only granules 1 and 3, skipping granule 2.*
+
 ## Command Line Options
 
 ```
 usage: download_hls_data.py [-h] (--coords-file COORDS_FILE | --coords-direct SW_LAT SW_LON NE_LAT NE_LON)
                            [--sw-lat SW_LAT] [--sw-lon SW_LON] [--ne-lat NE_LAT] [--ne-lon NE_LON]
                            --date DATE [--bands BANDS [BANDS ...]] [--output-dir OUTPUT_DIR]
-                           [--max-results MAX_RESULTS] [--list-only]
+                           [--max-results MAX_RESULTS] [--list-only] [--auto-download]
 
 Download HLS Sentinel-2 data from NASA Earthdata
 
@@ -191,22 +268,38 @@ options:
   --max-results MAX_RESULTS
                         Maximum number of results (default: 50)
   --list-only           Only list available data, do not download
+  --auto-download       Automatically download all granules without user interaction
 ```
 
 ## Output
 
-Downloaded files will be saved as GeoTIFF (.tif) files with names like:
+Downloaded files are organized in granule-specific folders with GeoTIFF (.tif) files:
+
 ```
-HLS.S30.T43TGL.2024196T053649.v2.0.B02.tif
-HLS.S30.T43TGL.2024196T053649.v2.0.B03.tif
-HLS.S30.T43TGL.2024196T053649.v2.0.B04.tif
+./data/downloaded/
+├── HLS.S30.T43TGL.2024196T053649.v2.0/
+│   ├── HLS.S30.T43TGL.2024196T053649.v2.0.B02.tif
+│   ├── HLS.S30.T43TGL.2024196T053649.v2.0.B03.tif
+│   └── HLS.S30.T43TGL.2024196T053649.v2.0.B04.tif
+└── HLS.S30.T43TGM.2024196T053649.v2.0/
+    ├── HLS.S30.T43TGM.2024196T053649.v2.0.B02.tif
+    ├── HLS.S30.T43TGM.2024196T053649.v2.0.B03.tif
+    └── HLS.S30.T43TGM.2024196T053649.v2.0.B04.tif
 ```
 
-Where:
+### File Naming Convention:
 - `S30`: Sentinel-2 data
 - `T43TGL`: MGRS tile identifier
-- `2024196`: Year and day of year
+- `2024196`: Year and day of year (Julian day)
+- `T053649`: Time of acquisition
+- `v2.0`: Version
 - `B02`, `B03`, etc.: Band identifier
+
+### Folder Structure Benefits:
+- **Easy granule identification**: Each folder represents one satellite acquisition
+- **Simplified processing**: Process all bands from a single granule together
+- **Time series analysis**: Compare the same location across different acquisition dates
+- **Reduced file clutter**: Organized structure instead of hundreds of files in one directory
 
 ## Authentication
 

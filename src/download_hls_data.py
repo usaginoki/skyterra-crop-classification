@@ -11,9 +11,11 @@ Short Name: HLSS30
 import earthaccess
 import os
 from datetime import datetime
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 import argparse
 from dotenv import load_dotenv
+import re
+from collections import defaultdict
 
 # Load environment variables from .env file
 load_dotenv()
@@ -49,6 +51,109 @@ class HLSDownloader:
             print("Option 2: Use interactive login (script will prompt you)")
             raise
     
+    def _extract_granule_id(self, result) -> str:
+        """
+        Extract granule identifier from search result.
+        
+        HLS granule names follow pattern: HLS.S30.T42UXB.2025188T061639.v2.0.B11.tif
+        Granule ID is everything except the band: HLS.S30.T42UXB.2025188T061639.v2.0
+        """
+        try:
+            # Get the data URLs from the earthaccess result object
+            if hasattr(result, 'data_links') and result.data_links():
+                # Use the first data link to extract granule ID
+                first_url = result.data_links()[0]
+            elif hasattr(result, 'data') and result.data:
+                # Alternative way to access data URLs
+                first_url = result.data[0] if isinstance(result.data, list) else str(result.data)
+            else:
+                # Fallback: try to get URLs from the result object
+                first_url = str(result)
+            
+            # Extract filename from URL
+            if 'http' in first_url:
+                # Extract filename from URL path
+                filename = first_url.split('/')[-1]
+            else:
+                filename = first_url
+            
+            # Remove .tif extension if present
+            if filename.endswith('.tif'):
+                filename = filename[:-4]
+            
+            # Split by dots and remove the last part (band identifier)
+            parts = filename.split('.')
+            if len(parts) >= 2:
+                # Check if last part looks like a band (B02, B03, etc.) or other identifier
+                last_part = parts[-1]
+                if (last_part.startswith('B') and len(last_part) <= 4) or last_part in ['Fmask', 'VAA', 'VZA', 'SAA', 'SZA']:
+                    # Remove the band/mask identifier
+                    granule_id = '.'.join(parts[:-1])
+                else:
+                    # Keep all parts if last part doesn't look like a band
+                    granule_id = filename
+            else:
+                granule_id = filename
+                
+            return granule_id
+            
+        except Exception as e:
+            print(f"Warning: Could not extract granule ID from result: {e}")
+            # Fallback to using string representation
+            return f"unknown_granule_{hash(str(result)) % 10000}"
+    
+    def _group_results_by_granule(self, results) -> Dict[str, List]:
+        """Group search results by granule identifier."""
+        granule_groups = defaultdict(list)
+        
+        for result in results:
+            granule_id = self._extract_granule_id(result)
+            granule_groups[granule_id].append(result)
+        
+        return dict(granule_groups)
+    
+    def _select_granules_interactive(self, granule_groups: Dict[str, List]) -> List[str]:
+        """Allow user to interactively select granules."""
+        granule_ids = list(granule_groups.keys())
+        
+        print(f"\n🔍 Found {len(granule_ids)} granules:")
+        for i, granule_id in enumerate(granule_ids, 1):
+            band_count = len(granule_groups[granule_id])
+            print(f"   {i}. {granule_id} ({band_count} bands)")
+        
+        print(f"\nOptions:")
+        print(f"   - Enter granule numbers (1-{len(granule_ids)}) separated by commas to select specific granules")
+        print(f"   - Press Enter to download all granules")
+        print(f"   - Type 'abort' to cancel")
+        
+        while True:
+            try:
+                selection = input(f"\nYour choice: ").strip()
+                
+                if selection.lower() == 'abort':
+                    print("❌ Download aborted by user")
+                    return []
+                
+                if not selection:
+                    # Download all granules
+                    return granule_ids
+                
+                # Parse selected numbers
+                selected_numbers = [int(x.strip()) for x in selection.split(',')]
+                
+                # Validate numbers
+                if all(1 <= num <= len(granule_ids) for num in selected_numbers):
+                    selected_granules = [granule_ids[num - 1] for num in selected_numbers]
+                    return selected_granules
+                else:
+                    print(f"❌ Invalid selection. Please enter numbers between 1 and {len(granule_ids)}")
+                    
+            except ValueError:
+                print("❌ Invalid input. Please enter numbers separated by commas or press Enter for all")
+            except KeyboardInterrupt:
+                print("\n❌ Download aborted by user")
+                return []
+    
     def download_hls_data(
         self,
         sw_coords: Tuple[float, float],
@@ -56,7 +161,8 @@ class HLSDownloader:
         date: str,
         bands: List[str],
         output_dir: str = "./data",
-        max_results: int = 50
+        max_results: int = 50,
+        auto_download: bool = False
     ) -> List[str]:
         """
         Download HLS Sentinel-2 data for specified parameters.
@@ -68,6 +174,7 @@ class HLSDownloader:
             bands: List of bands to download (e.g., ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12'])
             output_dir: Directory to save downloaded files
             max_results: Maximum number of results to return
+            auto_download: If True, automatically download all granules without user interaction
             
         Returns:
             List of downloaded file paths
@@ -104,7 +211,7 @@ class HLSDownloader:
                 count=max_results
             )
             
-            print(f"📊 Found {len(results)} granules")
+            print(f"📊 Found {len(results)} total files")
             
             if not results:
                 print("❌ No data found for the specified criteria")
@@ -114,12 +221,33 @@ class HLSDownloader:
             if bands:
                 filtered_results = []
                 for result in results:
-                    # Check if any of the requested bands are in the granule name
-                    granule_name = str(result)
-                    for band in bands:
-                        if f".{band}." in granule_name:
-                            filtered_results.append(result)
-                            break
+                    # Extract filename from the result object to check bands
+                    try:
+                        # Get the data URLs from the earthaccess result object
+                        if hasattr(result, 'data_links') and result.data_links():
+                            # Check all data links for this result
+                            urls = result.data_links()
+                        elif hasattr(result, 'data') and result.data:
+                            # Alternative way to access data URLs
+                            urls = result.data if isinstance(result.data, list) else [result.data]
+                        else:
+                            # Skip if we can't get URLs
+                            continue
+                        
+                        # Check if any URL contains the requested bands
+                        for url in urls:
+                            filename = url.split('/')[-1] if 'http' in str(url) else str(url)
+                            for band in bands:
+                                if f".{band}." in filename:
+                                    filtered_results.append(result)
+                                    break
+                            else:
+                                continue
+                            break  # Found a matching band, no need to check more URLs
+                            
+                    except Exception as e:
+                        print(f"Warning: Could not check bands for result: {e}")
+                        continue
                 
                 results = filtered_results
                 print(f"📊 After band filtering: {len(results)} files")
@@ -128,16 +256,59 @@ class HLSDownloader:
                 print("❌ No files found matching the specified bands")
                 return []
             
-            # Create output directory if it doesn't exist
+            # Group results by granule
+            granule_groups = self._group_results_by_granule(results)
+            num_granules = len(granule_groups)
+            
+            print(f"📊 Organized into {num_granules} granules")
+            
+            # Check if more than 3 granules - abort if so
+            if num_granules > 3:
+                print(f"❌ Error: Found {num_granules} granules, but maximum allowed is 3")
+                print("   Please narrow your search criteria (smaller area or date range)")
+                return []
+            
+            # Select granules to download
+            if auto_download:
+                selected_granule_ids = [list(granule_groups.keys())[0]]
+                print(f"🤖 Auto-download mode: downloading first granule only ({selected_granule_ids[0]})")
+            else:
+                selected_granule_ids = self._select_granules_interactive(granule_groups)
+            
+            if not selected_granule_ids:
+                print("❌ No granules selected for download")
+                return []
+            
+            # Create main output directory
             os.makedirs(output_dir, exist_ok=True)
             
-            # Download the data
-            print(f"⬇️  Downloading files to {output_dir}...")
-            downloaded_files = earthaccess.download(results, output_dir)
+            all_downloaded_files = []
             
-            print(f"✓ Successfully downloaded {len(downloaded_files)} files")
+            # Download each selected granule to its own folder
+            for granule_id in selected_granule_ids:
+                granule_results = granule_groups[granule_id]
+                
+                # Create granule-specific folder
+                granule_folder = os.path.join(output_dir, granule_id)
+                os.makedirs(granule_folder, exist_ok=True)
+                
+                print(f"\n⬇️  Downloading granule: {granule_id}")
+                print(f"   Files: {len(granule_results)}")
+                print(f"   Folder: {granule_folder}")
+                
+                # Download files for this granule
+                try:
+                    downloaded_files = earthaccess.download(granule_results, granule_folder)
+                    all_downloaded_files.extend(downloaded_files)
+                    print(f"   ✓ Downloaded {len(downloaded_files)} files")
+                except Exception as e:
+                    print(f"   ❌ Error downloading granule {granule_id}: {e}")
+                    continue
             
-            return downloaded_files
+            print(f"\n✓ Successfully downloaded {len(all_downloaded_files)} files total")
+            print(f"📁 Files organized in {len(selected_granule_ids)} granule folders under: {output_dir}")
+            
+            return all_downloaded_files
             
         except Exception as e:
             print(f"❌ Error during search/download: {e}")
@@ -240,14 +411,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Download specific bands for a date using coordinate file
+  # Download specific bands for a date using coordinate file (interactive mode)
   python download_hls_data.py --coords-file data/sentinel/region-0/coordinates.txt --date 2025-01-15 --bands B02 B03 B04
 
-  # Download data using direct coordinates
+  # Download data using direct coordinates (interactive mode)
   python download_hls_data.py --sw-lat 45.24301 --sw-lon 78.44504 --ne-lat 45.2912 --ne-lon 78.49116 --date 2025-01-15
 
-  # Download data for a date range
-  python download_hls_data.py --coords-file coords.txt --date "2025-01-01,2025-01-31" --bands B8A B11 B12
+  # Download data for a date range with automatic download (no user interaction)
+  python download_hls_data.py --coords-file coords.txt --date "2025-01-01,2025-01-31" --bands B8A B11 B12 --auto-download
 
   # List available data without downloading
   python download_hls_data.py --coords-file coords.txt --date 2025-01-15 --list-only
@@ -281,6 +452,8 @@ Examples:
                        help='Maximum number of results (default: 50 or DEFAULT_MAX_RESULTS from .env)')
     parser.add_argument('--list-only', action='store_true',
                        help='Only list available data, do not download')
+    parser.add_argument('--auto-download', action='store_true',
+                       help='Automatically download all granules without user interaction')
     
     args = parser.parse_args()
     
@@ -317,7 +490,8 @@ Examples:
             date=args.date,
             bands=args.bands,
             output_dir=args.output_dir,
-            max_results=args.max_results
+            max_results=args.max_results,
+            auto_download=args.auto_download
         )
         
         if downloaded_files:
