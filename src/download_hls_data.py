@@ -112,14 +112,44 @@ class HLSDownloader:
         
         return dict(granule_groups)
     
+    def _group_file_urls_by_granule(self, file_urls) -> Dict[str, List]:
+        """Group file URLs by granule identifier."""
+        granule_groups = defaultdict(list)
+        
+        for url, result in file_urls:
+            # Extract granule ID from the filename in the URL
+            filename = url.split('/')[-1] if 'http' in url else url
+            
+            # Remove .tif extension if present
+            if filename.endswith('.tif'):
+                filename = filename[:-4]
+            
+            # Split by dots and remove the last part (band identifier)
+            parts = filename.split('.')
+            if len(parts) >= 2:
+                # Check if last part looks like a band or other identifier
+                last_part = parts[-1]
+                if (last_part.startswith('B') and len(last_part) <= 4) or last_part in ['Fmask', 'VAA', 'VZA', 'SAA', 'SZA']:
+                    # Remove the band/mask identifier
+                    granule_id = '.'.join(parts[:-1])
+                else:
+                    # Keep all parts if last part doesn't look like a band
+                    granule_id = filename
+            else:
+                granule_id = filename
+            
+            granule_groups[granule_id].append((url, result))
+        
+        return dict(granule_groups)
+    
     def _select_granules_interactive(self, granule_groups: Dict[str, List]) -> List[str]:
         """Allow user to interactively select granules."""
         granule_ids = list(granule_groups.keys())
         
         print(f"\n🔍 Found {len(granule_ids)} granules:")
         for i, granule_id in enumerate(granule_ids, 1):
-            band_count = len(granule_groups[granule_id])
-            print(f"   {i}. {granule_id} ({band_count} bands)")
+            file_count = len(granule_groups[granule_id])
+            print(f"   {i}. {granule_id} ({file_count} files)")
         
         print(f"\nOptions:")
         print(f"   - Enter granule numbers (1-{len(granule_ids)}) separated by commas to select specific granules")
@@ -211,53 +241,53 @@ class HLSDownloader:
                 count=max_results
             )
             
-            print(f"📊 Found {len(results)} total files")
+            print(f"📊 Found {len(results)} granule objects")
             
             if not results:
                 print("❌ No data found for the specified criteria")
                 return []
             
-            # Filter results by bands if specified
-            if bands:
-                filtered_results = []
-                for result in results:
-                    # Extract filename from the result object to check bands
-                    try:
-                        # Get the data URLs from the earthaccess result object
-                        if hasattr(result, 'data_links') and result.data_links():
-                            # Check all data links for this result
-                            urls = result.data_links()
-                        elif hasattr(result, 'data') and result.data:
-                            # Alternative way to access data URLs
-                            urls = result.data if isinstance(result.data, list) else [result.data]
-                        else:
-                            # Skip if we can't get URLs
-                            continue
-                        
-                        # Check if any URL contains the requested bands
-                        for url in urls:
-                            filename = url.split('/')[-1] if 'http' in str(url) else str(url)
-                            for band in bands:
-                                if f".{band}." in filename:
-                                    filtered_results.append(result)
-                                    break
-                            else:
-                                continue
-                            break  # Found a matching band, no need to check more URLs
-                            
-                    except Exception as e:
-                        print(f"Warning: Could not check bands for result: {e}")
+            # Extract all individual file URLs from granule objects
+            all_file_urls = []
+            for result in results:
+                try:
+                    # Get the data URLs from the earthaccess result object
+                    if hasattr(result, 'data_links') and result.data_links():
+                        urls = result.data_links()
+                    elif hasattr(result, 'data') and result.data:
+                        urls = result.data if isinstance(result.data, list) else [result.data]
+                    else:
                         continue
-                
-                results = filtered_results
-                print(f"📊 After band filtering: {len(results)} files")
+                    
+                    # Add all URLs from this granule
+                    for url in urls:
+                        all_file_urls.append((str(url), result))  # Store URL and original result object
+                        
+                except Exception as e:
+                    print(f"Warning: Could not extract URLs from result: {e}")
+                    continue
             
-            if not results:
+            print(f"📊 Total individual files available: {len(all_file_urls)}")
+            
+            # Filter individual files by bands if specified
+            if bands:
+                filtered_file_urls = []
+                for url, result in all_file_urls:
+                    filename = url.split('/')[-1] if 'http' in url else url
+                    for band in bands:
+                        if f".{band}." in filename:
+                            filtered_file_urls.append((url, result))
+                            break
+                
+                all_file_urls = filtered_file_urls
+                print(f"📊 After band filtering: {len(all_file_urls)} files")
+            
+            if not all_file_urls:
                 print("❌ No files found matching the specified bands")
                 return []
             
-            # Group results by granule
-            granule_groups = self._group_results_by_granule(results)
+            # Group file URLs by granule
+            granule_groups = self._group_file_urls_by_granule(all_file_urls)
             num_granules = len(granule_groups)
             
             print(f"📊 Organized into {num_granules} granules")
@@ -286,19 +316,22 @@ class HLSDownloader:
             
             # Download each selected granule to its own folder
             for granule_id in selected_granule_ids:
-                granule_results = granule_groups[granule_id]
+                granule_file_urls = granule_groups[granule_id]
+                
+                # Extract just the URLs for downloading
+                urls_to_download = [url for url, result in granule_file_urls]
                 
                 # Create granule-specific folder
                 granule_folder = os.path.join(output_dir, granule_id)
                 os.makedirs(granule_folder, exist_ok=True)
                 
                 print(f"\n⬇️  Downloading granule: {granule_id}")
-                print(f"   Files: {len(granule_results)}")
+                print(f"   Files: {len(urls_to_download)}")
                 print(f"   Folder: {granule_folder}")
                 
                 # Download files for this granule
                 try:
-                    downloaded_files = earthaccess.download(granule_results, granule_folder)
+                    downloaded_files = earthaccess.download(urls_to_download, granule_folder)
                     all_downloaded_files.extend(downloaded_files)
                     print(f"   ✓ Downloaded {len(downloaded_files)} files")
                 except Exception as e:
