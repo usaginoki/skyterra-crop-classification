@@ -347,8 +347,159 @@ Credentials are securely stored by the earthaccess library for future use.
 
 For more information about HLS data, visit: https://lpdaac.usgs.gov/products/hlss30v002/
 
+## Multi-Temporal Image Assembly
+
+The project includes `assemble_rasterio.py`, a lightweight script for assembling multi-temporal satellite images into single 18-band GeoTIFF files using rasterio (no QGIS required).
+
+### Features
+
+- **Multi-temporal assembly**: Combines 3 time periods (t0, t1, t2) with 6 bands each into one 18-band image
+- **Precise coordinate clipping**: Output bounds exactly match coordinates from `coordinates.txt`
+- **Automatic CRS transformation**: Handles conversion from WGS84 coordinates to image projection
+- **Lightweight dependencies**: Uses only rasterio and numpy
+- **Band organization**: Maintains logical band order (t0_B02, t0_B03, ..., t2_B12)
+- **Compression**: Outputs LZW-compressed GeoTIFF files
+
+### Usage
+
+#### Command Line
+
+```bash
+# Assemble with automatic clipping from coordinates.txt
+python assemble_rasterio.py data/sentinel/region-0/ --output output/my_18band.tif
+
+# Assemble with custom bounding box
+python assemble_rasterio.py data/sentinel/region-0/ \
+  --bbox 45.24301,78.44504,45.2912,78.49116 \
+  --output output/custom_18band.tif
+
+# Use full image extent (no clipping)
+python assemble_rasterio.py data/sentinel/region-0/ \
+  --output output/full_18band.tif
+```
+
+#### Input Directory Structure
+
+The script expects this folder structure:
+```
+data/sentinel/region-0/
+├── coordinates.txt          # Optional: defines clipping bounds
+├── t0/                     # Time period 0
+│   ├── *.B02.tiff
+│   ├── *.B03.tiff
+│   ├── *.B04.tiff
+│   ├── *.B8A.tiff
+│   ├── *.B11.tiff
+│   └── *.B12.tiff
+├── t1/                     # Time period 1
+│   ├── *.B02.tiff
+│   ├── *.B03.tiff
+│   ├── *.B04.tiff
+│   ├── *.B8A.tiff
+│   ├── *.B11.tiff
+│   └── *.B12.tiff
+└── t2/                     # Time period 2
+    ├── *.B02.tiff
+    ├── *.B03.tiff
+    ├── *.B04.tiff
+    ├── *.B8A.tiff
+    ├── *.B11.tiff
+    └── *.B12.tiff
+```
+
+#### Coordinates File Format
+
+Create a `coordinates.txt` file in your input directory:
+```
+HLS Sentinel-2 Multi-spectral Instrument Surface Reflectance Daily Global 30m v2.0
+
+sw 45.24301,78.44504
+ne 45.2912,78.49116
+```
+
+### Output
+
+The script produces a single 18-band GeoTIFF with:
+- **Band 1-6**: t0 bands (B02, B03, B04, B8A, B11, B12)
+- **Band 7-12**: t1 bands (B02, B03, B04, B8A, B11, B12)  
+- **Band 13-18**: t2 bands (B02, B03, B04, B8A, B11, B12)
+
+#### Band Descriptions
+Each band includes descriptive metadata:
+- `t0_B02`, `t0_B03`, `t0_B04`, `t0_B8A`, `t0_B11`, `t0_B12`
+- `t1_B02`, `t1_B03`, `t1_B04`, `t1_B8A`, `t1_B11`, `t1_B12`
+- `t2_B02`, `t2_B03`, `t2_B04`, `t2_B8A`, `t2_B11`, `t2_B12`
+
+### Coordinate System Handling
+
+The script automatically handles coordinate system transformations:
+
+1. **Reads coordinates** from `coordinates.txt` (in WGS84 lat/lon)
+2. **Detects image CRS** from input files (typically UTM)
+3. **Transforms coordinates** to match image projection
+4. **Clips precisely** to specified bounds
+
+#### Example Transformation
+```
+Input (WGS84):  lat=45.28826, lon=78.43218
+Output (UTM 43N): x=769,515.23m, y=5,020,156.78m
+```
+
+### Command Line Options
+
+```
+usage: assemble_rasterio.py [-h] [--bbox BBOX] [--output OUTPUT] [--verbose] input_dir
+
+Assemble 18-band multi-temporal satellite images
+
+positional arguments:
+  input_dir            Input directory containing t0, t1, t2 folders
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --bbox BBOX          Bounding box as sw_lat,sw_lon,ne_lat,ne_lon
+  --output OUTPUT      Output file path (default: assembled_18band.tif)
+  --verbose, -v        Verbose output
+```
+
+### Integration with HLS Downloader
+
+Perfect workflow integration:
+
+1. **Download multi-temporal data** using the HLS downloader
+2. **Organize by time periods** (t0, t1, t2)
+3. **Assemble into training data** using `assemble_rasterio.py`
+
+```bash
+# Step 1: Download data for 3 time periods
+python src/download_hls_data.py --coords-file coordinates.txt --date 2024-05-15 --bands B02 B03 B04 B8A B11 B12
+python src/download_hls_data.py --coords-file coordinates.txt --date 2024-06-30 --bands B02 B03 B04 B8A B11 B12  
+python src/download_hls_data.py --coords-file coordinates.txt --date 2024-07-15 --bands B02 B03 B04 B8A B11 B12
+
+# Step 2: Organize into time folders (manually or with scripts)
+# Move downloaded granules to t0/, t1/, t2/ folders
+
+# Step 3: Assemble into 18-band training image
+python assemble_rasterio.py data/sentinel/region-0/ --output training_data.tif
+```
+
+### Dependencies
+
+The assembly script requires:
+```bash
+pip install rasterio numpy shapely
+```
+
+### Use Cases
+
+- **Machine learning training data**: Create multi-temporal input features
+- **Change detection**: Analyze temporal patterns across acquisitions  
+- **Crop classification**: Capture seasonal vegetation dynamics
+- **Time series analysis**: Prepare data for temporal modeling
+
 ## References
 
 - [earthaccess library](https://github.com/nsidc/earthaccess)
 - [NASA Earthdata](https://earthdata.nasa.gov/)
-- [HLS Dataset Documentation](https://lpdaac.usgs.gov/products/hlss30v002/) # skyterra-crop-classification
+- [HLS Dataset Documentation](https://lpdaac.usgs.gov/products/hlss30v002/)
+- [Rasterio Documentation](https://rasterio.readthedocs.io/) # skyterra-crop-classification
