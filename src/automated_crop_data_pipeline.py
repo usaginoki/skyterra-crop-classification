@@ -1,19 +1,9 @@
 #!/usr/bin/env python3
 """
-Automated Crop Classification Data Pipeline
+Automated Crop Classification Data Pipeline - Enhanced Version
 
 This script automates the entire process of downloading and assembling HLS satellite data
-for crop classification. Given a center coordinate and date range, it:
-
-1. Creates a square bounding box around the center point
-2. Calculates 3 evenly spaced dates (t0, t1, t2) 
-3. Downloads HLS data for each date with ±3 day windows
-4. Assembles the data into a single 18-band multi-temporal image
-
-Usage:
-    python automated_crop_data_pipeline.py --center-lat 51.024681 --center-lon 71.841594 --start-date 2025-01-01 --end-date 2025-01-31 --output-dir ./pipeline_output
-
-Author: Generated for crop-classification project
+for crop classification. Enhanced with better error handling, logging, and timeouts.
 """
 
 import os
@@ -21,17 +11,31 @@ import sys
 import argparse
 import subprocess
 import shutil
+import time
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 import glob
 from typing import Tuple, List
 
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('pipeline.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 
 class CropDataPipeline:
-    """Automated pipeline for downloading and assembling crop classification data."""
+    """Enhanced automated pipeline for downloading and assembling crop classification data."""
     
     def __init__(self, center_lat: float, center_lon: float, start_date: str, end_date: str, 
-                 bbox_size: float = 0.01, output_dir: str = "./pipeline_output"):
+                 bbox_size: float = 0.01, output_dir: str = "./pipeline_output", 
+                 request_delay: int = 30):
         """
         Initialize the pipeline.
         
@@ -42,6 +46,7 @@ class CropDataPipeline:
             end_date: End date in YYYY-MM-DD format
             bbox_size: Half-width of bounding box in decimal degrees (default: 0.01 = ~1km)
             output_dir: Directory for all pipeline outputs
+            request_delay: Delay in seconds between API requests (default: 30)
         """
         self.center_lat = center_lat
         self.center_lon = center_lon
@@ -49,7 +54,15 @@ class CropDataPipeline:
         self.end_date = datetime.strptime(end_date, '%Y-%m-%d')
         self.bbox_size = bbox_size
         self.output_dir = output_dir
+        self.request_delay = request_delay
         self.bands = ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+        
+        # Validate dates aren't too far in the future
+        today = datetime.now()
+        if self.start_date > today:
+            logger.warning(f"Start date {start_date} is in the future. Satellite data may not be available yet.")
+        if self.end_date > today:
+            logger.warning(f"End date {end_date} is in the future. Satellite data may not be available yet.")
         
         # Create output directories
         os.makedirs(self.output_dir, exist_ok=True)
@@ -58,11 +71,12 @@ class CropDataPipeline:
         os.makedirs(self.downloads_dir, exist_ok=True)
         os.makedirs(self.organized_dir, exist_ok=True)
         
-        print(f"🚀 Initializing Crop Data Pipeline")
-        print(f"   Center: ({self.center_lat}, {self.center_lon})")
-        print(f"   Date range: {start_date} to {end_date}")
-        print(f"   Bounding box size: ±{self.bbox_size}°")
-        print(f"   Output directory: {self.output_dir}")
+        logger.info(f"🚀 Initializing Enhanced Crop Data Pipeline")
+        logger.info(f"   Center: ({self.center_lat}, {self.center_lon})")
+        logger.info(f"   Date range: {start_date} to {end_date}")
+        logger.info(f"   Bounding box size: ±{self.bbox_size}°")
+        logger.info(f"   Output directory: {self.output_dir}")
+        logger.info(f"   Request delay: {self.request_delay}s")
     
     def create_bounding_box(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """
@@ -136,27 +150,31 @@ class CropDataPipeline:
     def download_for_time_point(self, time_point: datetime, time_index: int, coords_file: str) -> str:
         """
         Download HLS data for a specific time point with ±3 day window.
-        
-        Args:
-            time_point: Target date for download
-            time_index: Time index (0, 1, or 2) for folder naming
-            coords_file: Path to coordinates file
-            
-        Returns:
-            Path to download directory for this time point
+        Enhanced with better error handling and logging.
         """
+        # Add delay between requests (except for first request)
+        if time_index > 0:
+            logger.info(f"⏳ Waiting {self.request_delay}s before next download to avoid rate limiting...")
+            time.sleep(self.request_delay)
+        
         # Create ±3 day window
         start_window = time_point - timedelta(days=3)
         end_window = time_point + timedelta(days=3)
         date_range = f"{start_window.strftime('%Y-%m-%d')},{end_window.strftime('%Y-%m-%d')}"
         
+        # Check if dates are reasonable (not too far in future)
+        today = datetime.now()
+        if start_window > today:
+            logger.error(f"Search window starts in future ({start_window.strftime('%Y-%m-%d')}). No satellite data available.")
+            raise ValueError(f"Cannot download data for future dates: {date_range}")
+        
         # Create time-specific download directory
         time_download_dir = os.path.join(self.downloads_dir, f't{time_index}')
         os.makedirs(time_download_dir, exist_ok=True)
         
-        print(f"\n⬇️  Downloading data for t{time_index}: {time_point.strftime('%Y-%m-%d')}")
-        print(f"   Search window: {date_range}")
-        print(f"   Download directory: {time_download_dir}")
+        logger.info(f"⬇️  Downloading data for t{time_index}: {time_point.strftime('%Y-%m-%d')}")
+        logger.info(f"   Search window: {date_range}")
+        logger.info(f"   Download directory: {time_download_dir}")
         
         # Construct download command
         script_path = os.path.join(os.path.dirname(__file__), 'download_hls_data.py')
@@ -166,19 +184,60 @@ class CropDataPipeline:
             '--date', date_range,
             '--bands'] + self.bands + [
             '--output-dir', time_download_dir,
-            '--auto-download'  # Automatically download first granule
+            '--auto-download',  # Automatically download first granule
+            '--verbose'  # Enable verbose logging
         ]
         
-        print(f"   Running: {' '.join(cmd)}")
+        logger.info(f"   Running: {' '.join(cmd)}")
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            print(f"   ✓ Download completed for t{time_index}")
+            # Run with extended timeout and better error capture
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                check=True,
+                timeout=600  # 10 minute timeout
+            )
+            
+            logger.info(f"   ✓ Download completed for t{time_index}")
+            
+            # Log the full output for debugging
             if result.stdout:
-                print(f"   Output: {result.stdout.split('✓ Successfully downloaded')[-1].strip() if '✓ Successfully downloaded' in result.stdout else 'Download completed'}")
+                logger.debug(f"   STDOUT: {result.stdout}")
+                # Extract summary for user display
+                if '✓ Successfully downloaded' in result.stdout:
+                    summary = result.stdout.split('✓ Successfully downloaded')[-1].strip()
+                    logger.info(f"   Summary: {summary}")
+                else:
+                    logger.info(f"   Output: Download completed")
+                    
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"   ❌ Download timed out for t{time_index} after 10 minutes")
+            logger.error(f"   Command: {' '.join(cmd)}")
+            raise
+            
         except subprocess.CalledProcessError as e:
-            print(f"   ❌ Download failed for t{time_index}: {e}")
-            print(f"   Error output: {e.stderr}")
+            logger.error(f"   ❌ Download failed for t{time_index}: {e}")
+            logger.error(f"   Return code: {e.returncode}")
+            logger.error(f"   Command: {' '.join(cmd)}")
+            
+            # Log the full stderr and stdout for debugging
+            if e.stderr:
+                logger.error(f"   STDERR: {e.stderr}")
+            if e.stdout:
+                logger.error(f"   STDOUT: {e.stdout}")
+            
+            # Try to provide helpful error messages
+            if e.returncode == 1:
+                if e.stdout and "No data found" in e.stdout:
+                    logger.error(f"   💡 Suggestion: No satellite data available for {date_range}")
+                    logger.error(f"   💡 Try adjusting the date range to historical dates (2022-2024)")
+                elif e.stdout and "Authentication failed" in e.stdout:
+                    logger.error(f"   💡 Suggestion: Check your NASA Earthdata credentials")
+                else:
+                    logger.error(f"   💡 Suggestion: Check the detailed logs above for specific error")
+                    
             raise
         
         return time_download_dir

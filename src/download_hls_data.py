@@ -16,39 +16,53 @@ import argparse
 from dotenv import load_dotenv
 import re
 from collections import defaultdict
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
 
+# Add verbose logging support
+def setup_logging(verbose=False):
+    """Setup logging configuration."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    return logging.getLogger(__name__)
+
 
 class HLSDownloader:
-    """Class to handle HLS Sentinel-2 data downloads from NASA Earthdata."""
+    """Enhanced class to handle HLS Sentinel-2 data downloads from NASA Earthdata."""
     
-    def __init__(self):
+    def __init__(self, verbose=False):
         """Initialize the downloader and authenticate with NASA Earthdata."""
+        self.logger = setup_logging(verbose)
+        self.logger.info("🔄 Initializing HLS Downloader...")
+        
         try:
             # Try to authenticate using environment variables first
             username = os.getenv('EARTHDATA_USERNAME')
             password = os.getenv('EARTHDATA_PASSWORD')
             
             if username and password:
-                print("🔐 Using credentials from environment variables...")
+                self.logger.info("🔐 Using credentials from environment variables...")
                 # Set environment variables for earthaccess to use
                 os.environ['EARTHDATA_USERNAME'] = username
                 os.environ['EARTHDATA_PASSWORD'] = password
                 earthaccess.login(strategy='environment')
-                print("✓ Successfully authenticated with NASA Earthdata (from .env)")
+                self.logger.info("✓ Successfully authenticated with NASA Earthdata (from .env)")
             else:
-                print("🔐 No credentials found in environment, using interactive login...")
-                print("   (Tip: Create a .env file with EARTHDATA_USERNAME and EARTHDATA_PASSWORD)")
+                self.logger.info("🔐 No credentials found in environment, using interactive login...")
+                self.logger.info("   (Tip: Create a .env file with EARTHDATA_USERNAME and EARTHDATA_PASSWORD)")
                 earthaccess.login()
-                print("✓ Successfully authenticated with NASA Earthdata (interactive)")
+                self.logger.info("✓ Successfully authenticated with NASA Earthdata (interactive)")
                 
         except Exception as e:
-            print(f"❌ Authentication failed: {e}")
-            print("Please ensure you have valid NASA Earthdata credentials")
-            print("Option 1: Create a .env file with your credentials (see env.example)")
-            print("Option 2: Use interactive login (script will prompt you)")
+            self.logger.error(f"❌ Authentication failed: {e}")
+            self.logger.error("Please ensure you have valid NASA Earthdata credentials")
+            self.logger.error("Option 1: Create a .env file with your credentials (see env.example)")
+            self.logger.error("Option 2: Use interactive login (script will prompt you)")
             raise
     
     def _extract_granule_id(self, result) -> str:
@@ -98,7 +112,7 @@ class HLSDownloader:
             return granule_id
             
         except Exception as e:
-            print(f"Warning: Could not extract granule ID from result: {e}")
+            self.logger.warning(f"Warning: Could not extract granule ID from result: {e}")
             # Fallback to using string representation
             return f"unknown_granule_{hash(str(result)) % 10000}"
     
@@ -195,19 +209,7 @@ class HLSDownloader:
         auto_download: bool = False
     ) -> List[str]:
         """
-        Download HLS Sentinel-2 data for specified parameters.
-        
-        Args:
-            sw_coords: Southwest coordinates (lat, lon)
-            ne_coords: Northeast coordinates (lat, lon)
-            date: Date in YYYY-MM-DD format or date range like "2025-01-01,2025-01-31"
-            bands: List of bands to download (e.g., ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12'])
-            output_dir: Directory to save downloaded files
-            max_results: Maximum number of results to return
-            auto_download: If True, automatically download all granules without user interaction
-            
-        Returns:
-            List of downloaded file paths
+        Enhanced download method with better error handling and logging.
         """
         
         # Create bounding box (west, south, east, north)
@@ -227,10 +229,10 @@ class HLSDownloader:
             # Single date provided, search for that day
             temporal = (date, date)
         
-        print(f"🔍 Searching for HLS Sentinel-2 data...")
-        print(f"   Bounding box: {bounding_box}")
-        print(f"   Date range: {temporal}")
-        print(f"   Bands: {bands}")
+        self.logger.info(f"🔍 Searching NASA Earthdata for HLS Sentinel-2 data...")
+        self.logger.info(f"   Bounding box: {bounding_box}")
+        self.logger.info(f"   Date range: {temporal}")
+        self.logger.info(f"   Bands: {bands}")
         
         try:
             # Search for HLS Sentinel-2 data
@@ -241,10 +243,18 @@ class HLSDownloader:
                 count=max_results
             )
             
-            print(f"📊 Found {len(results)} granule objects")
+            self.logger.info(f"📊 Found {len(results)} granule objects")
             
             if not results:
-                print("❌ No data found for the specified criteria")
+                self.logger.error("❌ No data found for the specified criteria")
+                self.logger.error(f"   Search parameters:")
+                self.logger.error(f"   - Bounding box: {bounding_box}")
+                self.logger.error(f"   - Date range: {temporal}")
+                self.logger.error(f"   - Bands: {bands}")
+                self.logger.error("💡 Suggestions:")
+                self.logger.error("   - Try a larger bounding box")
+                self.logger.error("   - Try a different date range (historical dates work better)")
+                self.logger.error("   - Check if the area has satellite coverage")
                 return []
             
             # Extract all individual file URLs from granule objects
@@ -264,10 +274,10 @@ class HLSDownloader:
                         all_file_urls.append((str(url), result))  # Store URL and original result object
                         
                 except Exception as e:
-                    print(f"Warning: Could not extract URLs from result: {e}")
+                    self.logger.warning(f"Warning: Could not extract URLs from result: {e}")
                     continue
             
-            print(f"📊 Total individual files available: {len(all_file_urls)}")
+            self.logger.info(f"📊 Total individual files available: {len(all_file_urls)}")
             
             # Filter individual files by bands if specified
             if bands:
@@ -280,33 +290,37 @@ class HLSDownloader:
                             break
                 
                 all_file_urls = filtered_file_urls
-                print(f"📊 After band filtering: {len(all_file_urls)} files")
+                self.logger.info(f"📊 After band filtering: {len(all_file_urls)} files")
             
             if not all_file_urls:
-                print("❌ No files found matching the specified bands")
+                self.logger.error("❌ No files found matching the specified bands")
                 return []
             
             # Group file URLs by granule
             granule_groups = self._group_file_urls_by_granule(all_file_urls)
             num_granules = len(granule_groups)
             
-            print(f"📊 Organized into {num_granules} granules")
-            
-            # Check if more than 3 granules - abort if so
-            if num_granules > 3:
-                print(f"❌ Error: Found {num_granules} granules, but maximum allowed is 3")
-                print("   Please narrow your search criteria (smaller area or date range)")
-                return []
+            self.logger.info(f"📊 Organized into {num_granules} granules")
             
             # Select granules to download
             if auto_download:
+                # In auto-download mode, download only the first granule
                 selected_granule_ids = [list(granule_groups.keys())[0]]
-                print(f"🤖 Auto-download mode: downloading first granule only ({selected_granule_ids[0]})")
+                self.logger.info(f"🤖 Auto-download mode: downloading first granule only ({selected_granule_ids[0]})")
+                if num_granules > 1:
+                    self.logger.info(f"   Found {num_granules} granules total, selecting the first one")
             else:
+                # Interactive mode - keep the 3 granule limit for user safety
+                if num_granules > 3:
+                    self.logger.error(f"❌ Error: Found {num_granules} granules, but maximum allowed is 3 in interactive mode")
+                    self.logger.error("   Please narrow your search criteria (smaller area or date range)")
+                    self.logger.error("   Or use --auto-download to automatically select the first granule")
+                    return []
+                    
                 selected_granule_ids = self._select_granules_interactive(granule_groups)
             
             if not selected_granule_ids:
-                print("❌ No granules selected for download")
+                self.logger.error("❌ No granules selected for download")
                 return []
             
             # Create main output directory
@@ -325,26 +339,29 @@ class HLSDownloader:
                 granule_folder = os.path.join(output_dir, granule_id)
                 os.makedirs(granule_folder, exist_ok=True)
                 
-                print(f"\n⬇️  Downloading granule: {granule_id}")
-                print(f"   Files: {len(urls_to_download)}")
-                print(f"   Folder: {granule_folder}")
+                self.logger.info(f"\n⬇️  Downloading granule: {granule_id}")
+                self.logger.info(f"   Files: {len(urls_to_download)}")
+                self.logger.info(f"   Folder: {granule_folder}")
                 
                 # Download files for this granule
                 try:
                     downloaded_files = earthaccess.download(urls_to_download, granule_folder)
                     all_downloaded_files.extend(downloaded_files)
-                    print(f"   ✓ Downloaded {len(downloaded_files)} files")
+                    self.logger.info(f"   ✓ Downloaded {len(downloaded_files)} files")
                 except Exception as e:
-                    print(f"   ❌ Error downloading granule {granule_id}: {e}")
+                    self.logger.error(f"   ❌ Error downloading granule {granule_id}: {e}")
                     continue
             
-            print(f"\n✓ Successfully downloaded {len(all_downloaded_files)} files total")
-            print(f"📁 Files organized in {len(selected_granule_ids)} granule folders under: {output_dir}")
+            self.logger.info(f"\n✓ Successfully downloaded {len(all_downloaded_files)} files total")
+            self.logger.info(f"📁 Files organized in {len(selected_granule_ids)} granule folders under: {output_dir}")
             
             return all_downloaded_files
             
         except Exception as e:
-            print(f"❌ Error during search/download: {e}")
+            self.logger.error(f"❌ Error during search/download: {e}")
+            self.logger.error(f"   Exception type: {type(e).__name__}")
+            import traceback
+            self.logger.debug(f"   Full traceback: {traceback.format_exc()}")
             return []
     
     def list_available_data(
@@ -379,9 +396,9 @@ class HLSDownloader:
         else:
             temporal = (date, date)
         
-        print(f"🔍 Listing available HLS Sentinel-2 data...")
-        print(f"   Bounding box: {bounding_box}")
-        print(f"   Date range: {temporal}")
+        self.logger.info(f"🔍 Listing available HLS Sentinel-2 data...")
+        self.logger.info(f"   Bounding box: {bounding_box}")
+        self.logger.info(f"   Date range: {temporal}")
         
         try:
             results = earthaccess.search_data(
@@ -391,12 +408,12 @@ class HLSDownloader:
                 count=max_results
             )
             
-            print(f"\n📊 Found {len(results)} granules:")
+            self.logger.info(f"\n📊 Found {len(results)} granules:")
             for i, result in enumerate(results[:max_results], 1):
-                print(f"   {i}. {result}")
+                self.logger.info(f"   {i}. {result}")
                 
         except Exception as e:
-            print(f"❌ Error during search: {e}")
+            self.logger.error(f"❌ Error during search: {e}")
 
 
 def parse_coordinates_file(file_path: str) -> Tuple[Tuple[float, float], Tuple[float, float]]:
@@ -438,9 +455,9 @@ def parse_coordinates_file(file_path: str) -> Tuple[Tuple[float, float], Tuple[f
 
 
 def main():
-    """Main function with command line interface."""
+    """Enhanced main function with better error handling."""
     parser = argparse.ArgumentParser(
-        description="Download HLS Sentinel-2 data from NASA Earthdata",
+        description="Download HLS Sentinel-2 data from NASA Earthdata (Enhanced)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -487,13 +504,18 @@ Examples:
                        help='Only list available data, do not download')
     parser.add_argument('--auto-download', action='store_true',
                        help='Automatically download all granules without user interaction')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                       help='Enable verbose logging for debugging')
     
     args = parser.parse_args()
+    
+    # Setup logging
+    logger = setup_logging(args.verbose)
     
     # Parse coordinates
     if args.coords_file:
         sw_coords, ne_coords = parse_coordinates_file(args.coords_file)
-        print(f"📍 Loaded coordinates from {args.coords_file}")
+        logger.info(f"📍 Loaded coordinates from {args.coords_file}")
     elif args.coords_direct:
         sw_coords = (args.coords_direct[0], args.coords_direct[1])
         ne_coords = (args.coords_direct[2], args.coords_direct[3])
@@ -501,16 +523,17 @@ Examples:
         sw_coords = (args.sw_lat, args.sw_lon)
         ne_coords = (args.ne_lat, args.ne_lon)
     else:
-        print("❌ Error: Must provide coordinates either via file or direct input")
+        logger.error("❌ Error: Must provide coordinates either via file or direct input")
         return 1
     
-    print(f"📍 Southwest: {sw_coords}")
-    print(f"📍 Northeast: {ne_coords}")
+    logger.info(f"📍 Southwest: {sw_coords}")
+    logger.info(f"📍 Northeast: {ne_coords}")
     
-    # Initialize downloader
+    # Initialize downloader with verbose flag
     try:
-        downloader = HLSDownloader()
-    except Exception:
+        downloader = HLSDownloader(verbose=args.verbose)
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize downloader: {e}")
         return 1
     
     # List or download data
@@ -528,11 +551,11 @@ Examples:
         )
         
         if downloaded_files:
-            print(f"\n✓ Downloaded {len(downloaded_files)} files:")
+            logger.info(f"\n✓ Downloaded {len(downloaded_files)} files:")
             for file_path in downloaded_files:
-                print(f"   {file_path}")
+                logger.info(f"   {file_path}")
         else:
-            print("\n❌ No files were downloaded")
+            logger.info("\n❌ No files were downloaded")
             return 1
     
     return 0
