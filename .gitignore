@@ -73,6 +73,7 @@ logs/
 outputs/
 results/
 predictions/
+pipeline_output/
 
 # Large files
 *.tif
