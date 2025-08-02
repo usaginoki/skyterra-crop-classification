@@ -206,10 +206,24 @@ class HLSDownloader:
         bands: List[str],
         output_dir: str = "./data",
         max_results: int = 50,
-        auto_download: bool = False
+        auto_download: bool = False,
+        cloud_cover: Tuple[float, float] = (0.0, 0.3)
     ) -> List[str]:
         """
         Enhanced download method with better error handling and logging.
+        
+        Args:
+            sw_coords: Southwest coordinates (lat, lon)
+            ne_coords: Northeast coordinates (lat, lon)
+            date: Date in YYYY-MM-DD format or date range
+            bands: List of bands to download
+            output_dir: Output directory for downloaded files
+            max_results: Maximum number of search results
+            auto_download: If True, automatically download the first granule
+            cloud_cover: Cloud cover range as (min, max) fraction (default: (0.0, 0.3))
+        
+        Returns:
+            List of downloaded file paths
         """
         
         # Create bounding box (west, south, east, north)
@@ -233,13 +247,16 @@ class HLSDownloader:
         self.logger.info(f"   Bounding box: {bounding_box}")
         self.logger.info(f"   Date range: {temporal}")
         self.logger.info(f"   Bands: {bands}")
+        self.logger.info(f"   Cloud cover range: {cloud_cover[0]:.1f} - {cloud_cover[1]:.1f}")
         
         try:
             # Search for HLS Sentinel-2 data
+            # Pass cloud cover as separate min and max parameters
             results = earthaccess.search_data(
                 short_name='HLSS30',  # HLS Sentinel-2 short name
                 bounding_box=bounding_box,
                 temporal=temporal,
+                cloud_cover=(cloud_cover[0], cloud_cover[1]),
                 count=max_results
             )
             
@@ -250,10 +267,12 @@ class HLSDownloader:
                 self.logger.error(f"   Search parameters:")
                 self.logger.error(f"   - Bounding box: {bounding_box}")
                 self.logger.error(f"   - Date range: {temporal}")
+                self.logger.error(f"   - Cloud cover: {cloud_cover[0]:.1f} - {cloud_cover[1]:.1f}")
                 self.logger.error(f"   - Bands: {bands}")
                 self.logger.error("💡 Suggestions:")
                 self.logger.error("   - Try a larger bounding box")
                 self.logger.error("   - Try a different date range (historical dates work better)")
+                self.logger.error("   - Try relaxing cloud cover constraints")
                 self.logger.error("   - Check if the area has satellite coverage")
                 return []
             
@@ -369,7 +388,8 @@ class HLSDownloader:
         sw_coords: Tuple[float, float],
         ne_coords: Tuple[float, float],
         date: str,
-        max_results: int = 10
+        max_results: int = 10,
+        cloud_cover: Tuple[float, float] = (0.0, 0.3)
     ):
         """
         List available HLS data for the specified area and date without downloading.
@@ -379,6 +399,7 @@ class HLSDownloader:
             ne_coords: Northeast coordinates (lat, lon)
             date: Date in YYYY-MM-DD format or date range
             max_results: Maximum number of results to display
+            cloud_cover: Cloud cover range as (min, max) fraction (default: (0.0, 0.3))
         """
         
         # Create bounding box
@@ -399,12 +420,15 @@ class HLSDownloader:
         self.logger.info(f"🔍 Listing available HLS Sentinel-2 data...")
         self.logger.info(f"   Bounding box: {bounding_box}")
         self.logger.info(f"   Date range: {temporal}")
+        self.logger.info(f"   Cloud cover range: {cloud_cover[0]:.1f} - {cloud_cover[1]:.1f}")
         
         try:
+            # Pass cloud cover as separate min and max parameters
             results = earthaccess.search_data(
                 short_name='HLSS30',
                 bounding_box=bounding_box,
                 temporal=temporal,
+                cloud_cover=(cloud_cover[0], cloud_cover[1]),
                 count=max_results
             )
             
@@ -470,6 +494,9 @@ Examples:
   # Download data for a date range with automatic download (no user interaction)
   python download_hls_data.py --coords-file coords.txt --date "2025-01-01,2025-01-31" --bands B8A B11 B12 --auto-download
 
+  # Download data with specific cloud cover range
+  python download_hls_data.py --coords-file coords.txt --date 2025-01-15 --cloud-cover-min 0 --cloud-cover-max 20
+
   # List available data without downloading
   python download_hls_data.py --coords-file coords.txt --date 2025-01-15 --list-only
         """
@@ -500,6 +527,10 @@ Examples:
     parser.add_argument('--max-results', type=int, 
                        default=int(os.getenv('DEFAULT_MAX_RESULTS', '50')),
                        help='Maximum number of results (default: 50 or DEFAULT_MAX_RESULTS from .env)')
+    parser.add_argument('--cloud-cover-min', type=float, default=0.0,
+                       help='Minimum cloud cover fraction (0.0-1.0, default: 0.0)')
+    parser.add_argument('--cloud-cover-max', type=float, default=0.3,
+                       help='Maximum cloud cover fraction (0.0-1.0, default: 0.3)')
     parser.add_argument('--list-only', action='store_true',
                        help='Only list available data, do not download')
     parser.add_argument('--auto-download', action='store_true',
@@ -511,6 +542,17 @@ Examples:
     
     # Setup logging
     logger = setup_logging(args.verbose)
+    
+    # Validate cloud cover range
+    if args.cloud_cover_min < 0.0 or args.cloud_cover_max > 1.0:
+        logger.error("❌ Cloud cover values must be between 0.0 and 1.0")
+        return 1
+    
+    if args.cloud_cover_min > args.cloud_cover_max:
+        logger.error("❌ Minimum cloud cover cannot be greater than maximum cloud cover")
+        return 1
+    
+    cloud_cover = (args.cloud_cover_min, args.cloud_cover_max)
     
     # Parse coordinates
     if args.coords_file:
@@ -528,6 +570,7 @@ Examples:
     
     logger.info(f"📍 Southwest: {sw_coords}")
     logger.info(f"📍 Northeast: {ne_coords}")
+    logger.info(f"☁️  Cloud cover range: {cloud_cover[0]:.1f} - {cloud_cover[1]:.1f}")
     
     # Initialize downloader with verbose flag
     try:
@@ -538,7 +581,7 @@ Examples:
     
     # List or download data
     if args.list_only:
-        downloader.list_available_data(sw_coords, ne_coords, args.date, args.max_results)
+        downloader.list_available_data(sw_coords, ne_coords, args.date, args.max_results, cloud_cover)
     else:
         downloaded_files = downloader.download_hls_data(
             sw_coords=sw_coords,
@@ -547,7 +590,8 @@ Examples:
             bands=args.bands,
             output_dir=args.output_dir,
             max_results=args.max_results,
-            auto_download=args.auto_download
+            auto_download=args.auto_download,
+            cloud_cover=cloud_cover
         )
         
         if downloaded_files:

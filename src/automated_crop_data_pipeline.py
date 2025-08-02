@@ -149,7 +149,8 @@ class CropDataPipeline:
     
     def download_for_time_point(self, time_point: datetime, time_index: int, coords_file: str) -> str:
         """
-        Download HLS data for a specific time point with ±3 day window.
+        Download HLS data for a specific time point with adaptive window sizing.
+        Starts with ±3 days and progressively widens if no data is found.
         Enhanced with better error handling and logging.
         """
         # Add delay between requests (except for first request)
@@ -157,90 +158,139 @@ class CropDataPipeline:
             logger.info(f"⏳ Waiting {self.request_delay}s before next download to avoid rate limiting...")
             time.sleep(self.request_delay)
         
-        # Create ±3 day window
-        start_window = time_point - timedelta(days=3)
-        end_window = time_point + timedelta(days=3)
-        date_range = f"{start_window.strftime('%Y-%m-%d')},{end_window.strftime('%Y-%m-%d')}"
-        
-        # Check if dates are reasonable (not too far in future)
-        today = datetime.now()
-        if start_window > today:
-            logger.error(f"Search window starts in future ({start_window.strftime('%Y-%m-%d')}). No satellite data available.")
-            raise ValueError(f"Cannot download data for future dates: {date_range}")
+        # Define progressive window sizes to try (in days)
+        window_sizes = [3, 7, 14, 30]
         
         # Create time-specific download directory
         time_download_dir = os.path.join(self.downloads_dir, f't{time_index}')
         os.makedirs(time_download_dir, exist_ok=True)
         
         logger.info(f"⬇️  Downloading data for t{time_index}: {time_point.strftime('%Y-%m-%d')}")
-        logger.info(f"   Search window: {date_range}")
         logger.info(f"   Download directory: {time_download_dir}")
         
-        # Construct download command
-        script_path = os.path.join(os.path.dirname(__file__), 'download_hls_data.py')
-        cmd = [
-            sys.executable, script_path,
-            '--coords-file', coords_file,
-            '--date', date_range,
-            '--bands'] + self.bands + [
-            '--output-dir', time_download_dir,
-            '--auto-download',  # Automatically download first granule
-            '--verbose'  # Enable verbose logging
-        ]
-        
-        logger.info(f"   Running: {' '.join(cmd)}")
-        
-        try:
-            # Run with extended timeout and better error capture
-            result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True, 
-                check=True,
-                timeout=600  # 10 minute timeout
-            )
+        # Try each window size until successful or all exhausted
+        for attempt, window_days in enumerate(window_sizes):
+            # Create window for this attempt
+            start_window = time_point - timedelta(days=window_days)
+            end_window = time_point + timedelta(days=window_days)
+            date_range = f"{start_window.strftime('%Y-%m-%d')},{end_window.strftime('%Y-%m-%d')}"
             
-            logger.info(f"   ✓ Download completed for t{time_index}")
+            # Check if dates are reasonable (not too far in future)
+            today = datetime.now()
+            if start_window > today:
+                logger.error(f"Search window starts in future ({start_window.strftime('%Y-%m-%d')}). No satellite data available.")
+                raise ValueError(f"Cannot download data for future dates: {date_range}")
             
-            # Log the full output for debugging
-            if result.stdout:
-                logger.debug(f"   STDOUT: {result.stdout}")
-                # Extract summary for user display
-                if '✓ Successfully downloaded' in result.stdout:
-                    summary = result.stdout.split('✓ Successfully downloaded')[-1].strip()
-                    logger.info(f"   Summary: {summary}")
-                else:
-                    logger.info(f"   Output: Download completed")
+            logger.info(f"   Attempt {attempt + 1}/{len(window_sizes)}: ±{window_days} day window ({date_range})")
+            
+            # Construct download command
+            script_path = os.path.join(os.path.dirname(__file__), 'download_hls_data.py')
+            cmd = [
+                sys.executable, script_path,
+                '--coords-file', coords_file,
+                '--date', date_range,
+                '--bands'] + self.bands + [
+                '--output-dir', time_download_dir,
+                '--auto-download',  # Automatically download first granule
+                '--verbose'  # Enable verbose logging
+            ]
+            
+            logger.debug(f"   Running: {' '.join(cmd)}")
+            
+            try:
+                # Run with extended timeout and better error capture
+                result = subprocess.run(
+                    cmd, 
+                    capture_output=True, 
+                    text=True, 
+                    check=True,
+                    timeout=600  # 10 minute timeout
+                )
+                
+                logger.info(f"   ✓ Download completed for t{time_index} with ±{window_days} day window")
+                
+                # Log the full output for debugging
+                if result.stdout:
+                    logger.debug(f"   STDOUT: {result.stdout}")
+                    # Extract summary for user display
+                    if '✓ Successfully downloaded' in result.stdout:
+                        summary = result.stdout.split('✓ Successfully downloaded')[-1].strip()
+                        logger.info(f"   Summary: {summary}")
+                    else:
+                        logger.info(f"   Output: Download completed")
+                
+                # Success! Return the download directory
+                return time_download_dir
+                        
+            except subprocess.TimeoutExpired as e:
+                logger.error(f"   ❌ Download timed out for t{time_index} after 10 minutes (±{window_days} days)")
+                logger.error(f"   Command: {' '.join(cmd)}")
+                # Don't retry on timeout - this is likely a system/network issue
+                raise
+                
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"   ⚠️  Download failed for t{time_index} with ±{window_days} day window: {e}")
+                
+                # Always log the error output at INFO level so we can see what happened
+                error_output = ""
+                if e.stderr:
+                    error_output += f"STDERR: {e.stderr.strip()}"
+                if e.stdout:
+                    if error_output:
+                        error_output += " | "
+                    error_output += f"STDOUT: {e.stdout.strip()}"
+                
+                if error_output:
+                    logger.info(f"   Error details: {error_output}")
+                
+                # Check if this is a "no data found" error that we should retry with wider window
+                should_retry = False
+                error_text = (e.stdout or "") + (e.stderr or "")
+                
+                if any(pattern in error_text for pattern in [
+                    "No data found", 
+                    "No granules selected", 
+                    "❌ No data found",
+                    "❌ No granules selected"
+                ]):
+                    should_retry = True
+                    logger.info(f"   💡 No satellite data found for ±{window_days} day window")
                     
-        except subprocess.TimeoutExpired as e:
-            logger.error(f"   ❌ Download timed out for t{time_index} after 10 minutes")
-            logger.error(f"   Command: {' '.join(cmd)}")
-            raise
-            
-        except subprocess.CalledProcessError as e:
-            logger.error(f"   ❌ Download failed for t{time_index}: {e}")
-            logger.error(f"   Return code: {e.returncode}")
-            logger.error(f"   Command: {' '.join(cmd)}")
-            
-            # Log the full stderr and stdout for debugging
-            if e.stderr:
-                logger.error(f"   STDERR: {e.stderr}")
-            if e.stdout:
-                logger.error(f"   STDOUT: {e.stdout}")
-            
-            # Try to provide helpful error messages
-            if e.returncode == 1:
-                if e.stdout and "No data found" in e.stdout:
-                    logger.error(f"   💡 Suggestion: No satellite data available for {date_range}")
-                    logger.error(f"   💡 Try adjusting the date range to historical dates (2022-2024)")
-                elif e.stdout and "Authentication failed" in e.stdout:
-                    logger.error(f"   💡 Suggestion: Check your NASA Earthdata credentials")
-                else:
-                    logger.error(f"   💡 Suggestion: Check the detailed logs above for specific error")
+                elif "Authentication failed" in error_text or "authentication" in error_text.lower():
+                    logger.error(f"   💡 Authentication failed - check your NASA Earthdata credentials")
+                    # Don't retry on auth failures
+                    raise
                     
-            raise
+                elif "future" in error_text.lower() and "date" in error_text.lower():
+                    logger.error(f"   💡 Date is in the future - satellite data not available yet")
+                    # Don't retry on future date errors
+                    raise
+                    
+                else:
+                    # For other errors, we can still try with a wider window
+                    # Many errors might be transient or related to sparse data coverage
+                    should_retry = True
+                    logger.info(f"   💡 Error occurred, will try wider window if available")
+                
+                # If this is our last attempt, raise the error
+                if attempt == len(window_sizes) - 1:
+                    if should_retry:
+                        logger.error(f"   ❌ No satellite data found even with maximum window size (±{window_sizes[-1]} days)")
+                        logger.error(f"   💡 Suggestion: Try adjusting the target date to historical dates (2022-2024)")
+                        logger.error(f"   💡 Or choose a different geographic location with better satellite coverage")
+                    else:
+                        logger.error(f"   ❌ Download failed with non-retryable error")
+                    raise
+                
+                # Continue to next window size if we should retry
+                if should_retry:
+                    logger.info(f"   🔄 Retrying with wider search window...")
+                else:
+                    # If we shouldn't retry, raise immediately
+                    raise
         
-        return time_download_dir
+        # This should never be reached due to the logic above, but just in case
+        raise RuntimeError(f"Unexpected error: exhausted all window sizes without success or failure")
     
     def organize_downloaded_files(self, download_dirs: List[str]) -> str:
         """
