@@ -12,9 +12,9 @@
       </HistItem>
     </Histograms>
     <Metadata>
+      <MDI key="STATISTICS_MINIMUM">1849</MDI>
       <MDI key="STATISTICS_MAXIMUM">9233</MDI>
       <MDI key="STATISTICS_MEAN">6990.8030483957</MDI>
-      <MDI key="STATISTICS_MINIMUM">1849</MDI>
       <MDI key="STATISTICS_STDDEV">1207.7054573848</MDI>
       <MDI key="STATISTICS_VALID_PERCENT">100</MDI>
     </Metadata>
@@ -32,9 +32,9 @@
       </HistItem>
     </Histograms>
     <Metadata>
+      <MDI key="STATISTICS_MINIMUM">1575</MDI>
       <MDI key="STATISTICS_MAXIMUM">9980</MDI>
       <MDI key="STATISTICS_MEAN">7179.8477670987</MDI>
-      <MDI key="STATISTICS_MINIMUM">1575</MDI>
       <MDI key="STATISTICS_STDDEV">1289.8423714917</MDI>
       <MDI key="STATISTICS_VALID_PERCENT">100</MDI>
     </Metadata>
@@ -52,9 +52,9 @@
       </HistItem>
     </Histograms>
     <Metadata>
+      <MDI key="STATISTICS_MINIMUM">1230</MDI>
       <MDI key="STATISTICS_MAXIMUM">10518</MDI>
       <MDI key="STATISTICS_MEAN">7222.0896170089</MDI>
-      <MDI key="STATISTICS_MINIMUM">1230</MDI>
       <MDI key="STATISTICS_STDDEV">1348.1994030662</MDI>
       <MDI key="STATISTICS_VALID_PERCENT">100</MDI>
     </Metadata>
