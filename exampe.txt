@@ -1,0 +1,1 @@
+python3 src/automated_crop_data_pipeline.py --center-lat 45.29107 --center-lon 78.48538 --start-date 2025-03-01 --end-date 2025-07-01 --bbox-size 0.1 --output-dir ./tdk_field

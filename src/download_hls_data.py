@@ -389,7 +389,7 @@ class HLSDownloader:
         ne_coords: Tuple[float, float],
         date: str,
         max_results: int = 10,
-        cloud_cover: Tuple[float, float] = (0.0, 0.3)
+        cloud_cover: Tuple[float, float] = (0.0, 0.1)
     ):
         """
         List available HLS data for the specified area and date without downloading.
