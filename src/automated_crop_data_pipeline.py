@@ -34,7 +34,7 @@ class CropDataPipeline:
     """Enhanced automated pipeline for downloading and assembling crop classification data."""
     
     def __init__(self, center_lat: float, center_lon: float, start_date: str, end_date: str, 
-                 bbox_size: float = 0.01, output_dir: str = "./pipeline_output", 
+                 bbox_size: float = 0.1, output_dir: str = "./pipeline_output", 
                  request_delay: int = 30):
         """
         Initialize the pipeline.
@@ -483,7 +483,7 @@ Examples:
                        help='End date in YYYY-MM-DD format')
     
     # Optional parameters
-    parser.add_argument('--bbox-size', type=float, default=0.01,
+    parser.add_argument('--bbox-size', type=float, default=0.05,
                        help='Half-width of bounding box in decimal degrees (default: 0.01 ≈ 1km)')
     parser.add_argument('--output-dir', default='./pipeline_output',
                        help='Output directory for all pipeline files (default: ./pipeline_output)')

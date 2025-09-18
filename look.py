@@ -140,7 +140,7 @@ def create_false_color_composites(img_array):
 if __name__ == "__main__":
     # Replace with your actual image path
     # This could be a multi-band TIFF file from your HLS data
-    image_path = "2.tif"
+    image_path = "../classified/45_pred.tif"
     
     # Example paths based on your project structure:
     # image_path = "./data/downloaded/HLS.S30.T43TGL.2024196T053649.v2.0/stacked_bands.tif"

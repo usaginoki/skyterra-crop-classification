@@ -207,7 +207,7 @@ class HLSDownloader:
         output_dir: str = "./data",
         max_results: int = 50,
         auto_download: bool = False,
-        cloud_cover: Tuple[float, float] = (0.0, 0.3)
+        cloud_cover: Tuple[float, float] = (0.0, 0.1)
     ) -> List[str]:
         """
         Enhanced download method with better error handling and logging.

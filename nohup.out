@@ -1,0 +1,296 @@
+2025-08-13 22:16:41,171 - INFO - 🚀 Initializing Enhanced Crop Data Pipeline
+2025-08-13 22:16:41,171 - INFO -    Center: (45.29107, 78.48538)
+2025-08-13 22:16:41,171 - INFO -    Date range: 2025-03-01 to 2025-07-01
+2025-08-13 22:16:41,171 - INFO -    Bounding box size: ±0.1°
+2025-08-13 22:16:41,171 - INFO -    Output directory: ./tdk_field
+2025-08-13 22:16:41,171 - INFO -    Request delay: 30s
+2025-08-13 22:16:41,172 - INFO - ⬇️  Downloading data for t0: 2025-03-01
+2025-08-13 22:16:41,172 - INFO -    Download directory: ./tdk_field/downloads/t0
+2025-08-13 22:16:41,172 - INFO -    Attempt 1/4: ±3 day window (2025-02-26,2025-03-04)
+2025-08-13 22:16:58,901 - WARNING -    ⚠️  Download failed for t0 with ±3 day window: Command '['/home/artur/.pyenv/versions/skyterra/bin/python3', '/home/artur/Workspace/Skyterra/skyterra-crop-classification/src/download_hls_data.py', '--coords-file', './tdk_field/coordinates.txt', '--date', '2025-02-26,2025-03-04', '--bands', 'B02', 'B03', 'B04', 'B8A', 'B11', 'B12', '--output-dir', './tdk_field/downloads/t0', '--auto-download', '--verbose']' returned non-zero exit status 1.
+2025-08-13 22:16:58,901 - INFO -    Error details: STDERR: 2025-08-13 22:16:41,699 - INFO - 📍 Loaded coordinates from ./tdk_field/coordinates.txt
+2025-08-13 22:16:41,699 - INFO - 📍 Southwest: (45.191069999999996, 78.38538000000001)
+2025-08-13 22:16:41,699 - INFO - 📍 Northeast: (45.39107, 78.58538)
+2025-08-13 22:16:41,699 - INFO - ☁️  Cloud cover range: 0.0 - 0.3
+2025-08-13 22:16:41,699 - INFO - 🔄 Initializing HLS Downloader...
+2025-08-13 22:16:41,699 - INFO - 🔐 Using credentials from environment variables...
+2025-08-13 22:16:41,699 - DEBUG - Using environment variables for EDL
+2025-08-13 22:16:41,700 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:16:43,340 - DEBUG - https://urs.earthdata.nasa.gov:443 "POST /api/users/find_or_create_token HTTP/1.1" 200 None
+2025-08-13 22:16:43,340 - INFO - You're now authenticated with NASA Earthdata Login
+2025-08-13 22:16:43,340 - DEBUG - Using token with expiration date: 09/22/2025
+2025-08-13 22:16:43,341 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:16:44,531 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:16:44,840 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:16:44,841 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:16:45,842 - DEBUG - Automatic authentication with strategy='environment' was successful
+2025-08-13 22:16:45,842 - DEBUG - We are already authenticated with NASA EDL
+2025-08-13 22:16:45,843 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:16:46,758 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:16:46,991 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:16:46,993 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:16:47,994 - INFO - ✓ Successfully authenticated with NASA Earthdata (from .env)
+2025-08-13 22:16:47,994 - INFO - 🔍 Searching NASA Earthdata for HLS Sentinel-2 data...
+2025-08-13 22:16:47,994 - INFO -    Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:16:47,994 - INFO -    Date range: ('2025-02-26', '2025-03-04')
+2025-08-13 22:16:47,995 - INFO -    Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:16:47,995 - INFO -    Cloud cover range: 0.0 - 0.3
+2025-08-13 22:16:47,996 - DEBUG - Starting new HTTPS connection (1): cmr.earthdata.nasa.gov:443
+2025-08-13 22:16:52,898 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-02-26T00:00:00Z,2025-03-04T23:59:59Z&cloud_cover=0.0,0.3&page_size=0 HTTP/1.1" 200 None
+2025-08-13 22:16:52,898 - INFO - Granules found: 0
+2025-08-13 22:16:58,832 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-02-26T00:00:00Z,2025-03-04T23:59:59Z&cloud_cover=0.0,0.3&page_size=50 HTTP/1.1" 200 None
+2025-08-13 22:16:58,833 - INFO - 📊 Found 0 granule objects
+2025-08-13 22:16:58,833 - ERROR - ❌ No data found for the specified criteria
+2025-08-13 22:16:58,833 - ERROR -    Search parameters:
+2025-08-13 22:16:58,833 - ERROR -    - Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:16:58,833 - ERROR -    - Date range: ('2025-02-26', '2025-03-04')
+2025-08-13 22:16:58,833 - ERROR -    - Cloud cover: 0.0 - 0.3
+2025-08-13 22:16:58,834 - ERROR -    - Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:16:58,834 - ERROR - 💡 Suggestions:
+2025-08-13 22:16:58,834 - ERROR -    - Try a larger bounding box
+2025-08-13 22:16:58,834 - ERROR -    - Try a different date range (historical dates work better)
+2025-08-13 22:16:58,834 - ERROR -    - Try relaxing cloud cover constraints
+2025-08-13 22:16:58,834 - ERROR -    - Check if the area has satellite coverage
+2025-08-13 22:16:58,834 - INFO - 
+❌ No files were downloaded
+2025-08-13 22:16:58,902 - INFO -    💡 No satellite data found for ±3 day window
+2025-08-13 22:16:58,902 - INFO -    🔄 Retrying with wider search window...
+2025-08-13 22:16:58,902 - INFO -    Attempt 2/4: ±7 day window (2025-02-22,2025-03-08)
+2025-08-13 22:17:17,291 - WARNING -    ⚠️  Download failed for t0 with ±7 day window: Command '['/home/artur/.pyenv/versions/skyterra/bin/python3', '/home/artur/Workspace/Skyterra/skyterra-crop-classification/src/download_hls_data.py', '--coords-file', './tdk_field/coordinates.txt', '--date', '2025-02-22,2025-03-08', '--bands', 'B02', 'B03', 'B04', 'B8A', 'B11', 'B12', '--output-dir', './tdk_field/downloads/t0', '--auto-download', '--verbose']' returned non-zero exit status 1.
+2025-08-13 22:17:17,291 - INFO -    Error details: STDERR: 2025-08-13 22:16:59,425 - INFO - 📍 Loaded coordinates from ./tdk_field/coordinates.txt
+2025-08-13 22:16:59,425 - INFO - 📍 Southwest: (45.191069999999996, 78.38538000000001)
+2025-08-13 22:16:59,425 - INFO - 📍 Northeast: (45.39107, 78.58538)
+2025-08-13 22:16:59,425 - INFO - ☁️  Cloud cover range: 0.0 - 0.3
+2025-08-13 22:16:59,425 - INFO - 🔄 Initializing HLS Downloader...
+2025-08-13 22:16:59,425 - INFO - 🔐 Using credentials from environment variables...
+2025-08-13 22:16:59,426 - DEBUG - Using environment variables for EDL
+2025-08-13 22:16:59,427 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:17:00,747 - DEBUG - https://urs.earthdata.nasa.gov:443 "POST /api/users/find_or_create_token HTTP/1.1" 200 None
+2025-08-13 22:17:00,747 - INFO - You're now authenticated with NASA Earthdata Login
+2025-08-13 22:17:00,748 - DEBUG - Using token with expiration date: 09/22/2025
+2025-08-13 22:17:00,748 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:17:02,078 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:17:02,436 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:17:02,438 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:17:03,439 - DEBUG - Automatic authentication with strategy='environment' was successful
+2025-08-13 22:17:03,439 - DEBUG - We are already authenticated with NASA EDL
+2025-08-13 22:17:03,440 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:17:04,764 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:17:05,096 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:17:05,097 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:17:06,098 - INFO - ✓ Successfully authenticated with NASA Earthdata (from .env)
+2025-08-13 22:17:06,098 - INFO - 🔍 Searching NASA Earthdata for HLS Sentinel-2 data...
+2025-08-13 22:17:06,098 - INFO -    Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:17:06,098 - INFO -    Date range: ('2025-02-22', '2025-03-08')
+2025-08-13 22:17:06,098 - INFO -    Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:17:06,098 - INFO -    Cloud cover range: 0.0 - 0.3
+2025-08-13 22:17:06,100 - DEBUG - Starting new HTTPS connection (1): cmr.earthdata.nasa.gov:443
+2025-08-13 22:17:12,668 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-02-22T00:00:00Z,2025-03-08T23:59:59Z&cloud_cover=0.0,0.3&page_size=0 HTTP/1.1" 200 None
+2025-08-13 22:17:12,669 - INFO - Granules found: 0
+2025-08-13 22:17:17,215 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-02-22T00:00:00Z,2025-03-08T23:59:59Z&cloud_cover=0.0,0.3&page_size=50 HTTP/1.1" 200 None
+2025-08-13 22:17:17,216 - INFO - 📊 Found 0 granule objects
+2025-08-13 22:17:17,216 - ERROR - ❌ No data found for the specified criteria
+2025-08-13 22:17:17,216 - ERROR -    Search parameters:
+2025-08-13 22:17:17,216 - ERROR -    - Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:17:17,216 - ERROR -    - Date range: ('2025-02-22', '2025-03-08')
+2025-08-13 22:17:17,216 - ERROR -    - Cloud cover: 0.0 - 0.3
+2025-08-13 22:17:17,216 - ERROR -    - Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:17:17,216 - ERROR - 💡 Suggestions:
+2025-08-13 22:17:17,216 - ERROR -    - Try a larger bounding box
+2025-08-13 22:17:17,216 - ERROR -    - Try a different date range (historical dates work better)
+2025-08-13 22:17:17,216 - ERROR -    - Try relaxing cloud cover constraints
+2025-08-13 22:17:17,216 - ERROR -    - Check if the area has satellite coverage
+2025-08-13 22:17:17,216 - INFO - 
+❌ No files were downloaded
+2025-08-13 22:17:17,291 - INFO -    💡 No satellite data found for ±7 day window
+2025-08-13 22:17:17,291 - INFO -    🔄 Retrying with wider search window...
+2025-08-13 22:17:17,291 - INFO -    Attempt 3/4: ±14 day window (2025-02-15,2025-03-15)
+2025-08-13 22:17:36,179 - INFO -    ✓ Download completed for t0 with ±14 day window
+2025-08-13 22:17:36,179 - INFO - ⏳ Waiting 30s before next download to avoid rate limiting...
+2025-08-13 22:18:06,180 - INFO - ⬇️  Downloading data for t1: 2025-05-01
+2025-08-13 22:18:06,180 - INFO -    Download directory: ./tdk_field/downloads/t1
+2025-08-13 22:18:06,180 - INFO -    Attempt 1/4: ±3 day window (2025-04-28,2025-05-04)
+2025-08-13 22:18:24,249 - WARNING -    ⚠️  Download failed for t1 with ±3 day window: Command '['/home/artur/.pyenv/versions/skyterra/bin/python3', '/home/artur/Workspace/Skyterra/skyterra-crop-classification/src/download_hls_data.py', '--coords-file', './tdk_field/coordinates.txt', '--date', '2025-04-28,2025-05-04', '--bands', 'B02', 'B03', 'B04', 'B8A', 'B11', 'B12', '--output-dir', './tdk_field/downloads/t1', '--auto-download', '--verbose']' returned non-zero exit status 1.
+2025-08-13 22:18:24,249 - INFO -    Error details: STDERR: 2025-08-13 22:18:06,699 - INFO - 📍 Loaded coordinates from ./tdk_field/coordinates.txt
+2025-08-13 22:18:06,700 - INFO - 📍 Southwest: (45.191069999999996, 78.38538000000001)
+2025-08-13 22:18:06,700 - INFO - 📍 Northeast: (45.39107, 78.58538)
+2025-08-13 22:18:06,700 - INFO - ☁️  Cloud cover range: 0.0 - 0.3
+2025-08-13 22:18:06,700 - INFO - 🔄 Initializing HLS Downloader...
+2025-08-13 22:18:06,700 - INFO - 🔐 Using credentials from environment variables...
+2025-08-13 22:18:06,700 - DEBUG - Using environment variables for EDL
+2025-08-13 22:18:06,701 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:18:07,951 - DEBUG - https://urs.earthdata.nasa.gov:443 "POST /api/users/find_or_create_token HTTP/1.1" 200 None
+2025-08-13 22:18:07,953 - INFO - You're now authenticated with NASA Earthdata Login
+2025-08-13 22:18:07,953 - DEBUG - Using token with expiration date: 09/22/2025
+2025-08-13 22:18:07,954 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:18:09,226 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:18:09,554 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:18:09,556 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:18:10,558 - DEBUG - Automatic authentication with strategy='environment' was successful
+2025-08-13 22:18:10,558 - DEBUG - We are already authenticated with NASA EDL
+2025-08-13 22:18:10,559 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:18:11,745 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:18:12,048 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:18:12,049 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:18:13,050 - INFO - ✓ Successfully authenticated with NASA Earthdata (from .env)
+2025-08-13 22:18:13,051 - INFO - 🔍 Searching NASA Earthdata for HLS Sentinel-2 data...
+2025-08-13 22:18:13,051 - INFO -    Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:18:13,051 - INFO -    Date range: ('2025-04-28', '2025-05-04')
+2025-08-13 22:18:13,051 - INFO -    Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:18:13,051 - INFO -    Cloud cover range: 0.0 - 0.3
+2025-08-13 22:18:13,052 - DEBUG - Starting new HTTPS connection (1): cmr.earthdata.nasa.gov:443
+2025-08-13 22:18:19,473 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-04-28T00:00:00Z,2025-05-04T23:59:59Z&cloud_cover=0.0,0.3&page_size=0 HTTP/1.1" 200 None
+2025-08-13 22:18:19,474 - INFO - Granules found: 0
+2025-08-13 22:18:24,166 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-04-28T00:00:00Z,2025-05-04T23:59:59Z&cloud_cover=0.0,0.3&page_size=50 HTTP/1.1" 200 None
+2025-08-13 22:18:24,166 - INFO - 📊 Found 0 granule objects
+2025-08-13 22:18:24,166 - ERROR - ❌ No data found for the specified criteria
+2025-08-13 22:18:24,166 - ERROR -    Search parameters:
+2025-08-13 22:18:24,166 - ERROR -    - Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:18:24,166 - ERROR -    - Date range: ('2025-04-28', '2025-05-04')
+2025-08-13 22:18:24,166 - ERROR -    - Cloud cover: 0.0 - 0.3
+2025-08-13 22:18:24,166 - ERROR -    - Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:18:24,167 - ERROR - 💡 Suggestions:
+2025-08-13 22:18:24,167 - ERROR -    - Try a larger bounding box
+2025-08-13 22:18:24,167 - ERROR -    - Try a different date range (historical dates work better)
+2025-08-13 22:18:24,167 - ERROR -    - Try relaxing cloud cover constraints
+2025-08-13 22:18:24,167 - ERROR -    - Check if the area has satellite coverage
+2025-08-13 22:18:24,167 - INFO - 
+❌ No files were downloaded
+2025-08-13 22:18:24,249 - INFO -    💡 No satellite data found for ±3 day window
+2025-08-13 22:18:24,250 - INFO -    🔄 Retrying with wider search window...
+2025-08-13 22:18:24,250 - INFO -    Attempt 2/4: ±7 day window (2025-04-24,2025-05-08)
+2025-08-13 22:18:39,644 - WARNING -    ⚠️  Download failed for t1 with ±7 day window: Command '['/home/artur/.pyenv/versions/skyterra/bin/python3', '/home/artur/Workspace/Skyterra/skyterra-crop-classification/src/download_hls_data.py', '--coords-file', './tdk_field/coordinates.txt', '--date', '2025-04-24,2025-05-08', '--bands', 'B02', 'B03', 'B04', 'B8A', 'B11', 'B12', '--output-dir', './tdk_field/downloads/t1', '--auto-download', '--verbose']' returned non-zero exit status 1.
+2025-08-13 22:18:39,644 - INFO -    Error details: STDERR: 2025-08-13 22:18:24,763 - INFO - 📍 Loaded coordinates from ./tdk_field/coordinates.txt
+2025-08-13 22:18:24,764 - INFO - 📍 Southwest: (45.191069999999996, 78.38538000000001)
+2025-08-13 22:18:24,764 - INFO - 📍 Northeast: (45.39107, 78.58538)
+2025-08-13 22:18:24,764 - INFO - ☁️  Cloud cover range: 0.0 - 0.3
+2025-08-13 22:18:24,764 - INFO - 🔄 Initializing HLS Downloader...
+2025-08-13 22:18:24,764 - INFO - 🔐 Using credentials from environment variables...
+2025-08-13 22:18:24,764 - DEBUG - Using environment variables for EDL
+2025-08-13 22:18:24,765 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:18:26,040 - DEBUG - https://urs.earthdata.nasa.gov:443 "POST /api/users/find_or_create_token HTTP/1.1" 200 None
+2025-08-13 22:18:26,041 - INFO - You're now authenticated with NASA Earthdata Login
+2025-08-13 22:18:26,041 - DEBUG - Using token with expiration date: 09/22/2025
+2025-08-13 22:18:26,042 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:18:27,310 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:18:27,634 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:18:27,636 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:18:28,637 - DEBUG - Automatic authentication with strategy='environment' was successful
+2025-08-13 22:18:28,638 - DEBUG - We are already authenticated with NASA EDL
+2025-08-13 22:18:28,639 - DEBUG - Starting new HTTPS connection (1): urs.earthdata.nasa.gov:443
+2025-08-13 22:18:29,569 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /profile HTTP/1.1" 302 None
+2025-08-13 22:18:29,813 - DEBUG - https://urs.earthdata.nasa.gov:443 "GET /home HTTP/1.1" 200 None
+2025-08-13 22:18:29,814 - DEBUG - Starting new HTTP connection (1): 169.254.169.254:80
+2025-08-13 22:18:30,815 - INFO - ✓ Successfully authenticated with NASA Earthdata (from .env)
+2025-08-13 22:18:30,815 - INFO - 🔍 Searching NASA Earthdata for HLS Sentinel-2 data...
+2025-08-13 22:18:30,815 - INFO -    Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:18:30,815 - INFO -    Date range: ('2025-04-24', '2025-05-08')
+2025-08-13 22:18:30,816 - INFO -    Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:18:30,816 - INFO -    Cloud cover range: 0.0 - 0.3
+2025-08-13 22:18:30,817 - DEBUG - Starting new HTTPS connection (1): cmr.earthdata.nasa.gov:443
+2025-08-13 22:18:35,121 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-04-24T00:00:00Z,2025-05-08T23:59:59Z&cloud_cover=0.0,0.3&page_size=0 HTTP/1.1" 200 None
+2025-08-13 22:18:35,123 - INFO - Granules found: 0
+2025-08-13 22:18:39,562 - DEBUG - https://cmr.earthdata.nasa.gov:443 "GET /search/granules.umm_json?short_name=HLSS30&bounding_box=78.38538000000001,45.191069999999996,78.58538,45.39107&temporal%5B%5D=2025-04-24T00:00:00Z,2025-05-08T23:59:59Z&cloud_cover=0.0,0.3&page_size=50 HTTP/1.1" 200 None
+2025-08-13 22:18:39,562 - INFO - 📊 Found 0 granule objects
+2025-08-13 22:18:39,563 - ERROR - ❌ No data found for the specified criteria
+2025-08-13 22:18:39,563 - ERROR -    Search parameters:
+2025-08-13 22:18:39,563 - ERROR -    - Bounding box: (78.38538000000001, 45.191069999999996, 78.58538, 45.39107)
+2025-08-13 22:18:39,563 - ERROR -    - Date range: ('2025-04-24', '2025-05-08')
+2025-08-13 22:18:39,563 - ERROR -    - Cloud cover: 0.0 - 0.3
+2025-08-13 22:18:39,563 - ERROR -    - Bands: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12']
+2025-08-13 22:18:39,563 - ERROR - 💡 Suggestions:
+2025-08-13 22:18:39,563 - ERROR -    - Try a larger bounding box
+2025-08-13 22:18:39,563 - ERROR -    - Try a different date range (historical dates work better)
+2025-08-13 22:18:39,563 - ERROR -    - Try relaxing cloud cover constraints
+2025-08-13 22:18:39,563 - ERROR -    - Check if the area has satellite coverage
+2025-08-13 22:18:39,563 - INFO - 
+❌ No files were downloaded
+2025-08-13 22:18:39,645 - INFO -    💡 No satellite data found for ±7 day window
+2025-08-13 22:18:39,645 - INFO -    🔄 Retrying with wider search window...
+2025-08-13 22:18:39,645 - INFO -    Attempt 3/4: ±14 day window (2025-04-17,2025-05-15)
+2025-08-13 22:18:57,146 - INFO -    ✓ Download completed for t1 with ±14 day window
+2025-08-13 22:18:57,146 - INFO - ⏳ Waiting 30s before next download to avoid rate limiting...
+2025-08-13 22:19:27,147 - INFO - ⬇️  Downloading data for t2: 2025-07-01
+2025-08-13 22:19:27,147 - INFO -    Download directory: ./tdk_field/downloads/t2
+2025-08-13 22:19:27,147 - INFO -    Attempt 1/4: ±3 day window (2025-06-28,2025-07-04)
+2025-08-13 22:19:45,866 - INFO -    ✓ Download completed for t2 with ±3 day window
+
+============================================================
+🚀 STARTING AUTOMATED CROP DATA PIPELINE
+============================================================
+
+📍 STEP 1: Creating bounding box
+📍 Created bounding box:
+   SW: (45.191069999999996, 78.38538000000001) (lat, lon)
+   NE: (45.39107, 78.58538) (lat, lon)
+   Size: 0.2° x 0.2°
+
+📅 STEP 2: Calculating time points
+📅 Calculated time points:
+   t0: 2025-03-01
+   t1: 2025-05-01
+   t2: 2025-07-01
+
+📝 STEP 3: Creating coordinates file
+📝 Created coordinates file: ./tdk_field/coordinates.txt
+
+⬇️  STEP 4: Downloading HLS data
+
+📁 STEP 5: Organizing files
+
+📁 Organizing downloaded files...
+   Processing t0...
+   Found 6 .tif files
+     Copied B12: HLS.S30.T44TLR.2025049T054819.v2.0.B12.tif
+     Copied B04: HLS.S30.T44TLR.2025049T054819.v2.0.B04.tif
+     Copied B8A: HLS.S30.T44TLR.2025049T054819.v2.0.B8A.tif
+     Copied B02: HLS.S30.T44TLR.2025049T054819.v2.0.B02.tif
+     Copied B11: HLS.S30.T44TLR.2025049T054819.v2.0.B11.tif
+     Copied B03: HLS.S30.T44TLR.2025049T054819.v2.0.B03.tif
+   ✓ All 6 bands organized for t0
+   Processing t1...
+   Found 6 .tif files
+     Copied B8A: HLS.S30.T44TLR.2025133T054251.v2.0.B8A.tif
+     Copied B04: HLS.S30.T44TLR.2025133T054251.v2.0.B04.tif
+     Copied B11: HLS.S30.T44TLR.2025133T054251.v2.0.B11.tif
+     Copied B12: HLS.S30.T44TLR.2025133T054251.v2.0.B12.tif
+     Copied B03: HLS.S30.T44TLR.2025133T054251.v2.0.B03.tif
+     Copied B02: HLS.S30.T44TLR.2025133T054251.v2.0.B02.tif
+   ✓ All 6 bands organized for t1
+   Processing t2...
+   Found 6 .tif files
+     Copied B03: HLS.S30.T44TLR.2025179T054639.v2.0.B03.tif
+     Copied B02: HLS.S30.T44TLR.2025179T054639.v2.0.B02.tif
+     Copied B04: HLS.S30.T44TLR.2025179T054639.v2.0.B04.tif
+     Copied B8A: HLS.S30.T44TLR.2025179T054639.v2.0.B8A.tif
+     Copied B12: HLS.S30.T44TLR.2025179T054639.v2.0.B12.tif
+     Copied B11: HLS.S30.T44TLR.2025179T054639.v2.0.B11.tif
+   ✓ All 6 bands organized for t2
+   📝 Copied coordinates.txt to organized directory
+   ✓ Files organized in: ./tdk_field/organized
+
+🔨 STEP 6: Assembling final image
+
+🔨 Assembling 18-band image...
+   Input directory: ./tdk_field/organized
+   Output image: ./tdk_field/assembled_18band.tif
+   Running: /home/artur/.pyenv/versions/skyterra/bin/python3 /home/artur/Workspace/Skyterra/skyterra-crop-classification/src/assemble_rasterio.py ./tdk_field/organized --output ./tdk_field/assembled_18band.tif
+   ✓ Assembly completed!
+   Final image: ./tdk_field/assembled_18band.tif
+   Output shape: 756 x 545 x 18
+   Assembly complete! Output saved to: ./tdk_field/assembled_18band.tif
+
+============================================================
+✅ PIPELINE COMPLETED SUCCESSFULLY!
+============================================================
+📊 Summary:
+   Center coordinate: (45.29107, 78.48538)
+   Date range: 2025-03-01 to 2025-07-01
+   Bounding box: ±0.1° (0.2° x 0.2°)
+   Time points: 3 dates
+   Bands per time: 6
+   Total bands: 18
+   Final image: ./tdk_field/assembled_18band.tif
+   Output directory: ./tdk_field
+
+🎉 SUCCESS! Final 18-band image ready: ./tdk_field/assembled_18band.tif
